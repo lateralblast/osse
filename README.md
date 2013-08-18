@@ -10,11 +10,14 @@ This doesn't have much functionality at the moment, it's just an example.
 Usage
 =====
 
-	$ expcheck.pl -[hVJHo:]
+	$ expcheck.pl -[hBHJPRVo:]
 
 	-V: Print version information
 	-h: Print help
 	-J: Report which machines have JASS installed
+	-P: Report which machines have Puppet installed
+	-B: Report which machines have BSM enabled
+	-R: Report which machines have RSA SecurID PAM agent installed
 	-H: Generate HTML report
 	-o: Output to file rather than STDOUT
 
