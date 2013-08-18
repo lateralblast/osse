@@ -10,15 +10,20 @@ This doesn't have much functionality at the moment, it's just an example.
 Usage
 =====
 
-	$ expcheck.pl -[hBHJPRVo:]
+	$ expcheck.pl -[hBHJPRVc:f:m:o:s:]
 
 	-V: Print version information
 	-h: Print help
 	-J: Report which machines have JASS installed
 	-P: Report which machines have Puppet installed
 	-B: Report which machines have BSM enabled
+	-K: Report which machines have Kerberos enabled
 	-R: Report which machines have RSA SecurID PAM agent installed
 	-H: Generate HTML report
+	-s: String based search
+	-f: Explorer file to search
+	-c: Explorer client to search (by default all explorers are processed)
+	-m: Message to display (e.g. Installed/Enabled)
 	-o: Output to file rather than STDOUT
 
 Examples:

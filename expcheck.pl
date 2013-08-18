@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.0.6
+# Version:      0.0.7
 # Release:      1
 # License:      Open Source 
 # Group:        System
