@@ -30,7 +30,7 @@ my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hVJHo:";
+my $options="hBHJPRVo:";
 
 if ($#ARGV == -1) {
   print_usage();
@@ -67,10 +67,23 @@ sub print_usage {
   print "-V: Print version information\n";
   print "-h: Print help\n";
   print "-J: Report which machines have JASS installed\n";
+  print "-P: Report which machines have Puppet installed\n";
+  print "-B: Report which machines have BSM enabled\n";
+  print "-R: Report which machines have RSA SecurID PAM agent installed\n";
   print "-H: Generate HTML report\n";
   print "-o: Output to file rather than STDOUT\n";
   print "\n";
   return;
+}
+
+if ($option{'R'}) {
+  rsa_status();
+  exit;
+}
+
+if ($option{'B'}) {
+  bsm_status();
+  exit;
 }
 
 if ($option{'J'}) {
@@ -78,11 +91,16 @@ if ($option{'J'}) {
   exit;
 }
 
+if ($option{'P'}) {
+  puppet_status();
+  exit;
+}
+
 sub create_template {
   my $html=do { local $/; <DATA> };
-  my $template = HTML::Template->new(
-   scalarref         => \$html,
-   loop_context_vars => 1,
+  my $template=HTML::Template->new(
+    scalarref         => \$html,
+    loop_context_vars => 1,
   );
   return($template);
 }
@@ -96,6 +114,27 @@ sub jass_status {
   my $search_string="SUNWjass";
   my $search_file="patch+pkg/pkginfo-l.out";
   my $search_message="Installed";
+  search_explorers($search_file,$search_string,$search_message);
+}
+
+sub puppet_status {
+  my $search_string="puppet";
+  my $search_file="patch+pkg/pkginfo-l.out";
+  my $search_message="Installed";
+  search_explorers($search_file,$search_string,$search_message);
+}
+
+sub bsm_status {
+  my $search_string="audit";
+  my $search_file="etc/system";
+  my $search_message="Enabled";
+  search_explorers($search_file,$search_string,$search_message);
+}
+
+sub rsa_status {
+  my $search_string="securid";
+  my $search_file="etc/pam.conf";
+  my $search_message="Enabled";
   search_explorers($search_file,$search_string,$search_message);
 }
 
@@ -135,7 +174,7 @@ sub search_explorers {
     @pkg_info=`$command`;
     if (grep /$search_string/,@pkg_info) {
       if ($option{'H'}) {
-        my %row=(hostname=>"$hostname", value=>"$search_string $search_message");
+        my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message</font>");
         push(@loop,\%row);
       }
       else {
@@ -149,7 +188,7 @@ sub search_explorers {
     }
     else {
       if ($option{'H'}) {
-        my %row=(hostname=>"$hostname", value=>"$search_string Not $search_message");
+        my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message</font>");
         push(@loop,\%row);
       }
       else {
