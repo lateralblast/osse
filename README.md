@@ -10,7 +10,7 @@ This doesn't have much functionality at the moment, it's just an example.
 Usage
 =====
 
-	Usage: ./expcheck.pl 
+	$ expcheck.pl -[hVJHo:]
 
 	-V: Print version information
 	-h: Print help
@@ -23,7 +23,7 @@ Examples:
 
 Ouput which machines have SUNWjass installed:
 
-	./expcheck.pl -J
+	$ expcheck.pl -J
 	host01: SUNWjass Not Installed
 	host02: SUNWjass Not Installed
 	host03: SUNWjass Installed
@@ -31,4 +31,4 @@ Ouput which machines have SUNWjass installed:
 
 Ouput which machine have SUNWjass installed in HTML to a file:
 
-	./expcheck -J -H -o jass.html
+	$ expcheck -J -H -o jass.html

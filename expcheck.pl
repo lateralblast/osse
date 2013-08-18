@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.0.3
+# Version:      0.0.4
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -23,17 +23,20 @@ use File::Basename;
 #               Initial package reporting
 #               0.0.3 Sun 18 Aug 2013 11:12:39 EST
 #               Cleaned up template creation
+#               0.0.4 Sun 18 Aug 2013 11:37:58 EST
+#               Updated getopts code
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
+my $options="hVJHo:";
 
 if ($#ARGV == -1) {
   print_usage();
 }
 else {
-  getopts("hVJHo:",\%option);
+  getopts($options,\%option);
 }
 
 # If given -h print usage
@@ -59,7 +62,7 @@ if ($option{'V'}) {
 
 sub print_usage {
   print "\n";
-  print "Usage: $script_name \n";
+  print "Usage: $script_name -[$options]\n";
   print "\n";
   print "-V: Print version information\n";
   print "-h: Print help\n";
