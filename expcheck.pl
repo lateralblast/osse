@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.0.4
+# Version:      0.0.5
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -25,6 +25,8 @@ use File::Basename;
 #               Cleaned up template creation
 #               0.0.4 Sun 18 Aug 2013 11:37:58 EST
 #               Updated getopts code
+#               0.0.5 Mon 19 Aug 2013 06:20:58 EST
+#               Added RSA, BSM and Puppet tests
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
