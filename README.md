@@ -35,3 +35,7 @@ Ouput which machines have SUNWjass installed:
 Ouput which machine have SUNWjass installed in HTML to a file:
 
 	$ expcheck -J -H -o jass.html
+
+A Generic search of "/etc/pam.conf" for "krb5.so.1"
+
+	$ expcheck -s "krb5.so.1" -f "/etc/pam.conf"

@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.0.5
+# Version:      0.0.6
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -27,12 +27,16 @@ use File::Basename;
 #               Updated getopts code
 #               0.0.5 Mon 19 Aug 2013 06:20:58 EST
 #               Added RSA, BSM and Puppet tests
+#               0.0.6 Mon 19 Aug 2013 08:38:07 EST
+#               Added Kerberos and individual explorer file support
+#               0.0.7 Mon 19 Aug 2013 08:57:22 EST
+#               Added check to make sure host isn't duplicated (old explorers)
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hBHJPRVo:";
+my $options="hBHJPRVc:f:m:o:s:";
 
 if ($#ARGV == -1) {
   print_usage();
@@ -71,11 +75,32 @@ sub print_usage {
   print "-J: Report which machines have JASS installed\n";
   print "-P: Report which machines have Puppet installed\n";
   print "-B: Report which machines have BSM enabled\n";
+  print "-K: Report which machines have Kerberos enabled\n";
   print "-R: Report which machines have RSA SecurID PAM agent installed\n";
   print "-H: Generate HTML report\n";
+  print "-s: String based search\n";
+  print "-f: Explorer file to search\n";
+  print "-c: Explorer client to search (by default all explorers are processed)\n";
+  print "-m: Message to display (e.g. Installed/Enabled)\n";
   print "-o: Output to file rather than STDOUT\n";
   print "\n";
   return;
+}
+
+if ($option{'s'}) {
+  if (!$option{'f'}) {
+    print "File to search within Explorer must be specified\n";
+    exit;
+  }
+  if (!$option{'m'}) {
+    $option{'m'}="Installed/Enabled"
+  }
+  search_explorers($option{'f'},$option{'s'},$option{'m'},$option{'c'});
+}
+
+if ($option{'K'}) {
+  krb_status();
+  exit;
 }
 
 if ($option{'R'}) {
@@ -108,8 +133,24 @@ sub create_template {
 }
 
 sub get_explorer_list {
-  my @explorer_list=`find $explorer_dir -name "*exp*.gz" |sort -rn |uniq`;
+  my $search_client=$_[0];
+  my @explorer_list;
+  if ($search_client=~/[a-z]/) {
+    chomp($search_client);
+    @explorer_list=`find $explorer_dir -name "*exp*$search_client*.gz" |sort -rn |uniq`;
+  }
+  else {
+    @explorer_list=`find $explorer_dir -name "*exp*.gz" |sort -rn |uniq`;
+
+  }
   return(@explorer_list);
+}
+
+sub krb_status {
+  my $search_string="other[[:space:]]*auth[[:space:]]*sufficient[[:space:]]*pam_krb5.so.1";
+  my $search_file="etc/pam.conf";
+  my $search_message="Installed";
+  search_explorers($search_file,$search_string,$search_message);
 }
 
 sub jass_status {
@@ -144,7 +185,9 @@ sub search_explorers {
   my $search_file=$_[0];
   my $search_string=$_[1];
   my $search_message=$_[2];
-  my @explorer_list=get_explorer_list();
+  my $search_client=$_[3];
+  my @explorer_list=get_explorer_list($search_client);
+  my @host_list;
   my $hostname;
   my $pkg_file;
   my $explorer;
@@ -157,6 +200,7 @@ sub search_explorers {
   my $command;
   my $template;
   my $output_file;
+  $search_file=~s/^\///g;
   if ($option{'H'}) {
     $template=create_template();
   }
@@ -174,33 +218,36 @@ sub search_explorers {
     $filename="$filename/$search_file";
     $command="gtar -xpzf $explorer $filename -O";
     @pkg_info=`$command`;
-    if (grep /$search_string/,@pkg_info) {
-      if ($option{'H'}) {
-        my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message</font>");
-        push(@loop,\%row);
-      }
-      else {
-        if ($option{'o'}) {
-          print FILE "$hostname: $search_string $search_message\n";
-        }
-         else {
-          print "$hostname: $search_string $search_message\n";
-        }
-      }
-    }
-    else {
-      if ($option{'H'}) {
-        my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message</font>");
-        push(@loop,\%row);
-      }
-      else {
-        if ($option{'o'}) {
-          print FILE "$hostname: $search_string Not $search_message\n";
+    if (!grep /$hostname/,@host_list) {
+      if (grep /$search_string/,@pkg_info) {
+        if ($option{'H'}) {
+          my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message</font>");
+          push(@loop,\%row);
         }
         else {
-          print "$hostname: $search_string Not $search_message\n";
+          if ($option{'o'}) {
+            print FILE "$hostname: $search_string $search_message\n";
+          }
+           else {
+            print "$hostname: $search_string $search_message\n";
+          }
         }
       }
+      else {
+        if ($option{'H'}) {
+          my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message</font>");
+          push(@loop,\%row);
+        }
+        else {
+          if ($option{'o'}) {
+            print FILE "$hostname: $search_string Not $search_message\n";
+          }
+          else {
+            print "$hostname: $search_string Not $search_message\n";
+          }
+        }
+      }
+      push(@host_list,$hostname);
     }
   }
   if ($option{'H'}) {
