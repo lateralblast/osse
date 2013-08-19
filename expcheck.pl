@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.1.1
+# Version:      0.1.2
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -39,6 +39,8 @@ use File::Basename;
 #               Cleaned up template code
 #               0.1.1 Mon 19 Aug 2013 15:49:32 EST
 #               Added explorer check
+#               0.1.2 Mon 19 Aug 2013 16:03:11 EST
+#               Updated BSM and Security check
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
@@ -193,7 +195,7 @@ sub security_check {
   $search_string="^audit.notice[[:space:]]*/var/log/userlog";
   $search_file="etc/syslog.conf";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="audit";
+  $search_string="^set c2audit:audit_load = 1,^set noexec_user_stack_log=1,^set noexec_user_stack=1,^set nfssrv:nfs_portmon=1";
   $search_file="etc/system";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   print_template();
@@ -262,7 +264,7 @@ sub puppet_status {
 
 sub bsm_status {
   my $search_client=$_[0];
-  my $search_string="audit";
+  my $search_string="^set c2audit:audit_load = 1";
   my $search_file="etc/system";
   my $search_message="Enabled";
   search_explorers($search_file,$search_string,$search_message,$search_client);

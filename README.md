@@ -10,7 +10,7 @@ This doesn't have much functionality at the moment, it's just an example.
 Usage
 =====
 
-	$ expcheck.pl -[hBHJPRSVc:f:m:o:s:]
+	$ expcheck.pl -[hBEHJPRSVc:f:m:o:s:]
 
 	-V: Print version information
 	-h: Print help
@@ -19,6 +19,7 @@ Usage
 	-B: Report which machines have BSM enabled
 	-K: Report which machines have Kerberos enabled
 	-R: Report which machines have RSA SecurID PAM agent installed
+	-E: Report which machines have Explorer installed
 	-S: Run security check against explorers
 	-H: Generate HTML report
 	-s: String based search
