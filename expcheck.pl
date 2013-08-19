@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.0.9
+# Version:      0.1.0
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -35,12 +35,17 @@ use File::Basename;
 #               Converted search to array to avoid multiple file opens of the same file
 #               0.0.9 Mon 19 Aug 2013 11:26:26 EST
 #               Added initial security check
+#               0.1.0 Mon 19 Aug 2013 12:02:03 EST
+#               Cleaned up template code
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
 my $options="hBHJPRSVc:f:m:o:s:";
+my @loop;
+my $template;
+my $html=do { local $/; <DATA> };
 
 if ($#ARGV == -1) {
   print_usage();
@@ -144,7 +149,7 @@ sub security_check {
   $search_string="^MAXWEEKS=48,^MAXREPEATS=0";
   $search_file="etc/default/passwd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^ENABLE_NOBODY_KEYS=YES";
+  $search_string="^ENABLE_NOBODY_KEYS=NO";
   $search_file="etc/default/keyserv";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string="^TCP_STRONG_ISS=2";
@@ -162,15 +167,30 @@ sub security_check {
   $search_string="^BANNER=\"Authorized Use Only\"";
   $search_file="etc/default/telnetd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
+  print_template();
 }
 
 sub create_template {
-  my $html=do { local $/; <DATA> };
-  my $template=HTML::Template->new(
-    scalarref         => \$html,
-    loop_context_vars => 1,
-  );
-  return($template);
+  if ($option{'H'}) {
+    $template=HTML::Template->new(
+      scalarref         => \$html,
+      loop_context_vars => 1,
+    );
+    return;
+  }
+}
+
+sub print_template {
+  if ($option{'H'}) {
+    $template->param(explorer_data => \@loop);
+    if ($option{'o'}) {
+      print FILE $template->output();
+    }
+    else {
+      print $template->output();
+    }
+  }
+  return;
 }
 
 sub get_explorer_list {
@@ -241,11 +261,9 @@ sub search_explorers {
   my $filename;
   my @line;
   my $year;
-  my @loop;
   my @pkg_info;
   my $pkg_test;
   my $command;
-  my $template;
   my $output_file;
   if ($search_string=~/\,/) {
     @search_string=split(",",$search_string);
@@ -256,7 +274,7 @@ sub search_explorers {
   $search_string="";
   $search_file=~s/^\///g;
   if ($option{'H'}) {
-    $template=create_template();
+    create_template();
   }
   if ($option{'o'}) {
     $output_file=$option{'o'};
@@ -308,16 +326,9 @@ sub search_explorers {
       push(@host_list,$hostname);
     }
   }
-  if ($option{'H'}) {
-    $template->param(explorer_data => \@loop);
-    if ($option{'o'}) {
-      print FILE $template->output();
-    }
-    else {
-      print $template->output();
-    }
+  if (!$option{'S'}) {
+    print_template();
   }
-  return;
 }
 
 __DATA__
