@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.1.0
+# Version:      0.1.1
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -37,12 +37,14 @@ use File::Basename;
 #               Added initial security check
 #               0.1.0 Mon 19 Aug 2013 12:02:03 EST
 #               Cleaned up template code
+#               0.1.1 Mon 19 Aug 2013 15:49:32 EST
+#               Added explorer check
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hBHJPRSVc:f:m:o:s:";
+my $options="hBEHJPRSVc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -86,6 +88,7 @@ sub print_usage {
   print "-B: Report which machines have BSM enabled\n";
   print "-K: Report which machines have Kerberos enabled\n";
   print "-R: Report which machines have RSA SecurID PAM agent installed\n";
+  print "-E: Report which machines have Explorer installed\n";
   print "-S: Run security check against explorers\n";
   print "-H: Generate HTML report\n";
   print "-s: String based search\n";
@@ -106,6 +109,11 @@ if ($option{'s'}) {
     $option{'m'}="Installed/Enabled"
   }
   search_explorers($option{'f'},$option{'s'},$option{'m'},$option{'c'});
+}
+
+if ($option{'E'}) {
+  explorer_status($option{'c'});
+  exit;
 }
 
 if ($option{'S'}) {
@@ -138,21 +146,36 @@ if ($option{'P'}) {
   exit;
 }
 
+sub explorer_status {
+  my $search_client=$_[0];
+  my $search_message="Installed";
+  my $search_string;
+  my $search_file;
+  $search_string="SUNWexplo";
+  $search_file="patch+pkg/pkginfo-l.out";
+  $search_message="Installed";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  $search_string="/opt/SUNWexplo/bin/explorer";
+  $search_file="var/cron/root";
+  $search_message="Enabled";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+}
+
 sub security_check {
   my $search_client=$_[0];
   my $search_message="Set";
   my $search_string;
   my $search_file;
-  $search_string="^DISABLETIME=3600,^SYSLOG=YES,^SYSLOG_FAILED_LOGINS=0";
+  $search_string="^DISABLETIME=3600,^SYSLOG=YES,^SYSLOG_FAILED_LOGINS=0,^UMASK=022,^RETRIES=3,^CONSOLE=/dev/console,^PASSREQ=YES";
   $search_file="etc/default/login";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^MAXWEEKS=48,^MAXREPEATS=0";
+  $search_string="^MAXWEEKS=48,^MAXREPEATS=0,^MINALPHA=2,^MINDIFF=3,^MINDIGIT=1,^MINSPECIAL=0,^MINUPPER=1,^MINLOWER,^WHITESPACE=NO,^NAMECHECK=YES,PASSLENGTH=7,^DICTIONDBDIR=/var/passwd,^DICTIONLIST=/usr/share/dict/words,^MINWEEKS=2,^HISTORY=26";
   $search_file="etc/default/passwd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string="^ENABLE_NOBODY_KEYS=NO";
   $search_file="etc/default/keyserv";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^TCP_STRONG_ISS=2";
+  $search_string="^ACCEPT6TO4RELAY=NO,^RELAY6TO4ADDR=\"192.168.99.1\",^TCP_STRONG_ISS=2";
   $search_file="etc/default/inetinit";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string="^PMCHANGEPERM=-,^CPRCHANGEPERM=-";
@@ -166,6 +189,12 @@ sub security_check {
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string="^BANNER=\"Authorized Use Only\"";
   $search_file="etc/default/telnetd";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  $search_string="^audit.notice[[:space:]]*/var/log/userlog";
+  $search_file="etc/syslog.conf";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  $search_string="audit";
+  $search_file="etc/system";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   print_template();
 }
@@ -265,6 +294,8 @@ sub search_explorers {
   my $pkg_test;
   my $command;
   my $output_file;
+  my $message_file=$search_file;
+  $message_file=~s/\.out//g;
   if ($search_string=~/\,/) {
     @search_string=split(",",$search_string);
   }
@@ -295,30 +326,30 @@ sub search_explorers {
         if (grep /$search_string/,@pkg_info) {
           $search_string=~s/^\^//g;
           if ($option{'H'}) {
-            my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message</font>");
+            my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message in /$message_file</font>");
             push(@loop,\%row);
           }
           else {
             if ($option{'o'}) {
-              print FILE "$hostname: $search_string $search_message\n";
+              print FILE "$hostname: $search_string $search_message in /$message_file\n";
             }
             else {
-              print "$hostname: $search_string $search_message\n";
+              print "$hostname: $search_string $search_message in /$message_file\n";
             }
           }
         }
         else {
           $search_string=~s/^\^//g;
           if ($option{'H'}) {
-            my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message</font>");
+            my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message in /$message_file</font>");
             push(@loop,\%row);
           }
           else {
             if ($option{'o'}) {
-              print FILE "$hostname: $search_string Not $search_message\n";
+              print FILE "$hostname: $search_string Not $search_message in /$message_file\n";
             }
             else {
-              print "$hostname: $search_string Not $search_message\n";
+              print "$hostname: $search_string Not $search_message in /$message_file\n";
             }
           }
         }
