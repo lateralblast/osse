@@ -10,7 +10,7 @@ This doesn't have much functionality at the moment, it's just an example.
 Usage
 =====
 
-	$ expcheck.pl -[hBHJPRVc:f:m:o:s:]
+	$ expcheck.pl -[hBHJPRSVc:f:m:o:s:]
 
 	-V: Print version information
 	-h: Print help
@@ -19,6 +19,7 @@ Usage
 	-B: Report which machines have BSM enabled
 	-K: Report which machines have Kerberos enabled
 	-R: Report which machines have RSA SecurID PAM agent installed
+	-S: Run security check against explorers
 	-H: Generate HTML report
 	-s: String based search
 	-f: Explorer file to search
@@ -44,3 +45,4 @@ Ouput which machine have SUNWjass installed in HTML to a file:
 A Generic search of "/etc/pam.conf" for "krb5.so.1"
 
 	$ expcheck -s "krb5.so.1" -f "/etc/pam.conf"
+
