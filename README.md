@@ -10,7 +10,7 @@ This doesn't have much functionality at the moment, it's just an example.
 Usage
 =====
 
-	$ expcheck.pl -[hBEHJPRSVc:f:m:o:s:]
+	$ expcheck.pl -[hABEHJPRSVZc:f:m:o:s:]
 
 	-V: Print version information
 	-h: Print help
@@ -21,6 +21,8 @@ Usage
 	-R: Report which machines have RSA SecurID PAM agent installed
 	-E: Report which machines have Explorer installed
 	-S: Run security check against explorers
+	-Z: Run services check against explorers
+	-A: Output individual reports for each explorer/client
 	-H: Generate HTML report
 	-s: String based search
 	-f: Explorer file to search
