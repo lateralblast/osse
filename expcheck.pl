@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.1.2
+# Version:      0.1.4
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -41,12 +41,16 @@ use File::Basename;
 #               Added explorer check
 #               0.1.2 Mon 19 Aug 2013 16:03:11 EST
 #               Updated BSM and Security check
+#               0.1.3 Tue 20 Aug 2013 10:21:22 EST
+#               Added support to do all explorers (-A switch)
+#               0.1.4 Tue 20 Aug 2013 11:15:15 EST
+#               Added initial support for checking service status
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hBEHJPRSVc:f:m:o:s:";
+my $options="hABEHJPRSVZc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -92,6 +96,8 @@ sub print_usage {
   print "-R: Report which machines have RSA SecurID PAM agent installed\n";
   print "-E: Report which machines have Explorer installed\n";
   print "-S: Run security check against explorers\n";
+  print "-Z: Run services check against explorers\n";
+  print "-A: Output individual reports for each explorer/client\n";
   print "-H: Generate HTML report\n";
   print "-s: String based search\n";
   print "-f: Explorer file to search\n";
@@ -100,6 +106,11 @@ sub print_usage {
   print "-o: Output to file rather than STDOUT\n";
   print "\n";
   return;
+}
+
+if ($option{'A'}) {
+  individual_reports();
+  exit; 
 }
 
 if ($option{'s'}) {
@@ -113,39 +124,70 @@ if ($option{'s'}) {
   search_explorers($option{'f'},$option{'s'},$option{'m'},$option{'c'});
 }
 
-if ($option{'E'}) {
-  explorer_status($option{'c'});
-  exit;
+sub individual_reports {
+  my @explorer_list=get_explorer_list(); 
+  my $explorer_file;
+  my $hostname;
+  my $output_file; 
+  foreach $explorer_file (@explorer_list) {
+    if ($option{'H'}) {
+      create_template();
+    }
+    if ($option{'o'}) {
+      $output_file=$option{'o'};
+      open(FILE,">$output_file"); 
+    }
+    $hostname=get_hostname($explorer_file);
+    handle_reports($hostname)
+  }
+}
+if (!$option{'A'}) {
+  handle_reports($option{'c'});
 }
 
-if ($option{'S'}) {
-  security_check($option{'c'});
-  exit;
-}
-
-if ($option{'K'}) {
-  krb_status($option{'c'});
-  exit;
-}
-
-if ($option{'R'}) {
-  rsa_status($option{'c'});
-  exit;
-}
-
-if ($option{'B'}) {
-  bsm_status($option{'c'});
-  exit;
-}
-
-if ($option{'J'}) {
-  jass_status($option{'c'});
-  exit;
-}
-
-if ($option{'P'}) {
-  puppet_status($option{'c'});
-  exit;
+sub handle_reports {
+  my $hostname=$_[0];
+  my $output_file; 
+  if ($option{'H'}) {
+    create_template();
+  }
+  if ($option{'o'}) {
+    $output_file=$option{'o'};
+    open(FILE,">$output_file"); 
+    if ($option{'A'}) {
+      $output_file="$hostname\_$output_file"
+    }
+  }
+  if ($option{'E'}) {
+    explorer_status($hostname);
+  }
+  if ($option{'S'}) {
+    security_status($hostname);
+  }
+  if ($option{'K'}) {
+    krb_status($hostname);
+  }
+  if ($option{'R'}) {
+    rsa_status($hostname);
+  }
+  if ($option{'B'}) {
+    bsm_status($hostname);
+  }
+  if ($option{'J'}) {
+    jass_status($hostname);
+  }
+  if ($option{'P'}) {
+    puppet_status($hostname);
+  }
+  if ($option{'Z'}) {
+    services_status();
+  }
+  if ($option{'H'}) {
+    print_template();
+  }
+  if (!$option{'A'}) {
+    exit;
+  }
 }
 
 sub explorer_status {
@@ -163,42 +205,61 @@ sub explorer_status {
   search_explorers($search_file,$search_string,$search_message,$search_client);
 }
 
-sub security_check {
+
+sub services_status {
+  my $search_client=$_[0];
+  my $search_message;
+  my $search_string;
+  my $search_file; 
+  $search_message="Disabled";
+  $search_string ="offline.*svc:/application/management/snmpdx:default";
+  $search_file="sysconfig/svcs-av.out";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+}
+
+sub security_status {
   my $search_client=$_[0];
   my $search_message="Set";
   my $search_string;
   my $search_file;
-  $search_string="^DISABLETIME=3600,^SYSLOG=YES,^SYSLOG_FAILED_LOGINS=0,^UMASK=022,^RETRIES=3,^CONSOLE=/dev/console,^PASSREQ=YES";
+  $search_string ="^DISABLETIME=3600,^SYSLOG=YES,^SYSLOG_FAILED_LOGINS=0,";
+  $search_string.="^UMASK=022,^RETRIES=3,^CONSOLE=/dev/console,^PASSREQ=YES";
   $search_file="etc/default/login";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^MAXWEEKS=48,^MAXREPEATS=0,^MINALPHA=2,^MINDIFF=3,^MINDIGIT=1,^MINSPECIAL=0,^MINUPPER=1,^MINLOWER,^WHITESPACE=NO,^NAMECHECK=YES,PASSLENGTH=7,^DICTIONDBDIR=/var/passwd,^DICTIONLIST=/usr/share/dict/words,^MINWEEKS=2,^HISTORY=26";
+  $search_string ="^MAXWEEKS=48,^MAXREPEATS=0,^MINALPHA=2,^MINDIFF=3,";
+  $search_string.="^MINDIGIT=1,^MINSPECIAL=0,^MINUPPER=1,^MINLOWER,";
+  $search_string.="^WHITESPACE=NO,^NAMECHECK=YES,PASSLENGTH=7,";
+  $search_string.="^DICTIONDBDIR=/var/passwd,";
+  $search_string.="^DICTIONLIST=/usr/share/dict/words,^MINWEEKS=2,^HISTORY=26";
   $search_file="etc/default/passwd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^ENABLE_NOBODY_KEYS=NO";
+  $search_string ="^ENABLE_NOBODY_KEYS=NO";
   $search_file="etc/default/keyserv";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^ACCEPT6TO4RELAY=NO,^RELAY6TO4ADDR=\"192.168.99.1\",^TCP_STRONG_ISS=2";
+  $search_string ="^ACCEPT6TO4RELAY=NO,^RELAY6TO4ADDR=\"192.168.99.1\",";
+  $search_string.="^TCP_STRONG_ISS=2";
   $search_file="etc/default/inetinit";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^PMCHANGEPERM=-,^CPRCHANGEPERM=-";
+  $search_string ="^PMCHANGEPERM=-,^CPRCHANGEPERM=-";
   $search_file="etc/default/power";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^PERMS=-";
+  $search_string ="^PERMS=-";
   $search_file="etc/default/sys-suspend";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^LOG_FOR_REMOTE=NO";
+  $search_string ="^LOG_FOR_REMOTE=NO";
   $search_file="etc/default/syslogd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^BANNER=\"Authorized Use Only\"";
+  $search_string ="^BANNER=\"Authorized Use Only\"";
   $search_file="etc/default/telnetd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^audit.notice[[:space:]]*/var/log/userlog";
+  $search_string ="^audit.notice[[:space:]]*/var/log/userlog";
   $search_file="etc/syslog.conf";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string="^set c2audit:audit_load = 1,^set noexec_user_stack_log=1,^set noexec_user_stack=1,^set nfssrv:nfs_portmon=1";
+  $search_string ="^set c2audit:audit_load = 1,^set noexec_user_stack_log=1,";
+  $search_string.="^set noexec_user_stack=1,^set nfssrv:nfs_portmon=1";
   $search_file="etc/system";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  print_template();
+  return;
 }
 
 sub create_template {
@@ -278,6 +339,16 @@ sub rsa_status {
   search_explorers($search_file,$search_string,$search_message,$search_client);
 }
 
+sub get_hostname {
+  my $explorer_file=$_[0];
+  my @line=split(/\./,$explorer_file);
+  my $year;
+  my $hostname=@line[2];
+  ($hostname,$year)=split("-",$hostname);
+  ($hostname,$year)=split(/\-/,$hostname);
+  return($hostname);
+}
+
 sub search_explorers {
   my $search_file=$_[0];
   my $search_string=$_[1];
@@ -288,7 +359,7 @@ sub search_explorers {
   my @host_list;
   my $hostname;
   my $pkg_file;
-  my $explorer;
+  my $explorer_file;
   my $filename;
   my @line;
   my $year;
@@ -306,27 +377,19 @@ sub search_explorers {
   }
   $search_string="";
   $search_file=~s/^\///g;
-  if ($option{'H'}) {
-    create_template();
-  }
-  if ($option{'o'}) {
-    $output_file=$option{'o'};
-    open(FILE,">$output_file"); 
-  }
-  foreach $explorer (@explorer_list) {
-    chomp($explorer);
-    @line=split(/\./,$explorer);
-    $hostname=@line[2];
-    ($hostname,$year)=split("-",$hostname);
-    ($hostname,$year)=split(/\-/,$hostname);
-    $filename=basename($explorer,".tar.gz");
+  foreach $explorer_file (@explorer_list) {
+    chomp($explorer_file);
+    $hostname=get_hostname($explorer_file);
+    $filename=basename($explorer_file,".tar.gz");
     $filename="$filename/$search_file";
-    $command="gtar -xpzf $explorer $filename -O";
+    $command="gtar -xpzf $explorer_file $filename -O";
     @pkg_info=`$command`;
     if (!grep /$hostname/,@host_list) {
       foreach $search_string (@search_string) {
         if (grep /$search_string/,@pkg_info) {
           $search_string=~s/^\^//g;
+          $search_string=~s/^offline\.\*//g;
+          $search_string=~s/^online\.\*//g;
           if ($option{'H'}) {
             my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message in /$message_file</font>");
             push(@loop,\%row);
@@ -342,6 +405,8 @@ sub search_explorers {
         }
         else {
           $search_string=~s/^\^//g;
+          $search_string=~s/^offline\.\*//g;
+          $search_string=~s/^online\.\*//g;
           if ($option{'H'}) {
             my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message in /$message_file</font>");
             push(@loop,\%row);
@@ -358,9 +423,6 @@ sub search_explorers {
       }
       push(@host_list,$hostname);
     }
-  }
-  if (!$option{'S'}) {
-    print_template();
   }
 }
 
