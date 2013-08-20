@@ -50,7 +50,7 @@ my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hABEHJPRSVZc:f:m:o:s:";
+my $options="hABEHJKPRSVZc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -390,6 +390,7 @@ sub search_explorers {
           $search_string=~s/^\^//g;
           $search_string=~s/^offline\.\*//g;
           $search_string=~s/^online\.\*//g;
+          $search_string=~s/\[\[\:space\:\]\]\*/ /g;
           if ($option{'H'}) {
             my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message in /$message_file</font>");
             push(@loop,\%row);
@@ -407,6 +408,7 @@ sub search_explorers {
           $search_string=~s/^\^//g;
           $search_string=~s/^offline\.\*//g;
           $search_string=~s/^online\.\*//g;
+          $search_string=~s/\[\[\:space\:\]\]\*/ /g;
           if ($option{'H'}) {
             my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message in /$message_file</font>");
             push(@loop,\%row);
