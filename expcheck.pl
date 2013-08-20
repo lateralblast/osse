@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.1.4
+# Version:      0.1.6
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -45,12 +45,16 @@ use File::Basename;
 #               Added support to do all explorers (-A switch)
 #               0.1.4 Tue 20 Aug 2013 11:15:15 EST
 #               Added initial support for checking service status
+#               0.1.5 Tue 20 Aug 2013 13:03:02 EST
+#               Cleaned up results for Kerberos search
+#               0.1.6 Tue 20 Aug 2013 13:23:52 EST
+#               Added CSV output support
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hABEHJKPRSVZc:f:m:o:s:";
+my $options="hABCEHJKPRSVZc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -99,6 +103,7 @@ sub print_usage {
   print "-Z: Run services check against explorers\n";
   print "-A: Output individual reports for each explorer/client\n";
   print "-H: Generate HTML report\n";
+  print "-C: Generate CSV report\n";
   print "-s: String based search\n";
   print "-f: Explorer file to search\n";
   print "-c: Explorer client to search (by default all explorers are processed)\n";
@@ -363,6 +368,7 @@ sub search_explorers {
   my $filename;
   my @line;
   my $year;
+  my $spacer;
   my @pkg_info;
   my $pkg_test;
   my $command;
@@ -374,6 +380,12 @@ sub search_explorers {
   }
   else {
     @search_string[0]=$search_string; 
+  }
+  if ($option{'C'}) {
+    $spacer=",";
+  }
+  else {
+    $spacer=" ";
   }
   $search_string="";
   $search_file=~s/^\///g;
@@ -397,10 +409,10 @@ sub search_explorers {
           }
           else {
             if ($option{'o'}) {
-              print FILE "$hostname: $search_string $search_message in /$message_file\n";
+              print FILE "$hostname: $search_string$spacer$search_message in /$message_file\n";
             }
             else {
-              print "$hostname: $search_string $search_message in /$message_file\n";
+              print "$hostname: $search_string$spacer$search_message in /$message_file\n";
             }
           }
         }
@@ -415,10 +427,12 @@ sub search_explorers {
           }
           else {
             if ($option{'o'}) {
-              print FILE "$hostname: $search_string Not $search_message in /$message_file\n";
+              print FILE "$hostname: $search_string$spacer";
+              print FILE "Not $search_message in /$message_file\n";
             }
             else {
-              print "$hostname: $search_string Not $search_message in /$message_file\n";
+              print "$hostname: $search_string$spacer";
+              print "Not $search_message in /$message_file\n";
             }
           }
         }
