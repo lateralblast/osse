@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.1.6
+# Version:      0.1.8
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -49,12 +49,16 @@ use File::Basename;
 #               Cleaned up results for Kerberos search
 #               0.1.6 Tue 20 Aug 2013 13:23:52 EST
 #               Added CSV output support
+#               0.1.7 Thu 22 Aug 2013 14:19:46 EST
+#               Added check to see what version of sudo is installed
+#               0.1.8 Thu 22 Aug 2013 15:28:01 EST
+#               Added version detection to package requests
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hABCEHJKPRSVZc:f:m:o:s:";
+my $options="hABCEHJKPRSUVZc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -100,6 +104,7 @@ sub print_usage {
   print "-R: Report which machines have RSA SecurID PAM agent installed\n";
   print "-E: Report which machines have Explorer installed\n";
   print "-S: Run security check against explorers\n";
+  print "-U: Report which version of sudo is installed\n";
   print "-Z: Run services check against explorers\n";
   print "-A: Output individual reports for each explorer/client\n";
   print "-H: Generate HTML report\n";
@@ -184,8 +189,11 @@ sub handle_reports {
   if ($option{'P'}) {
     puppet_status($hostname);
   }
+  if ($option{'U'}) {
+    sudo_status($hostname);
+  }
   if ($option{'Z'}) {
-    services_status();
+    services_status($hostname);
   }
   if ($option{'H'}) {
     print_template();
@@ -208,8 +216,20 @@ sub explorer_status {
   $search_file="var/cron/root";
   $search_message="Enabled";
   search_explorers($search_file,$search_string,$search_message,$search_client);
+  return;
 }
 
+sub sudo_status {
+  my $search_client=$_[0];
+  my $search_message="Installed";
+  my $search_string;
+  my $search_file;
+  $search_string="sudo";
+  $search_file="patch+pkg/pkginfo-l.out";
+  $search_message="Installed";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  return;
+}
 
 sub services_status {
   my $search_client=$_[0];
@@ -220,6 +240,7 @@ sub services_status {
   $search_string ="offline.*svc:/application/management/snmpdx:default";
   $search_file="sysconfig/svcs-av.out";
   search_explorers($search_file,$search_string,$search_message,$search_client);
+  return;
 }
 
 sub security_status {
@@ -361,6 +382,7 @@ sub search_explorers {
   my $search_client=$_[3];
   my @explorer_list=get_explorer_list($search_client);
   my @search_string;
+  my $search_result;
   my @host_list;
   my $hostname;
   my $pkg_file;
@@ -368,12 +390,14 @@ sub search_explorers {
   my $filename;
   my @line;
   my $year;
+  my $junk;
   my $spacer;
   my @pkg_info;
   my $pkg_test;
   my $command;
   my $output_file;
   my $message_file=$search_file;
+  my $other_info;
   $message_file=~s/\.out//g;
   if ($search_string=~/\,/) {
     @search_string=split(",",$search_string);
@@ -399,20 +423,37 @@ sub search_explorers {
     if (!grep /$hostname/,@host_list) {
       foreach $search_string (@search_string) {
         if (grep /$search_string/,@pkg_info) {
-          $search_string=~s/^\^//g;
-          $search_string=~s/^offline\.\*//g;
-          $search_string=~s/^online\.\*//g;
-          $search_string=~s/\[\[\:space\:\]\]\*/ /g;
+          if ($filename=~/patch/) {
+            $search_result=(grep /$search_string$/,@pkg_info)[0];
+            chomp($search_result);
+            ($junk,$search_result)=split(": ",$search_result);
+            $other_info=join("\n",@pkg_info);
+            @pkg_info=split("PKGINST:",$other_info);
+            @pkg_info=(grep /$search_string/,@pkg_info);
+            $other_info=@pkg_info[0];
+            @pkg_info=split("\n",$other_info);
+            $other_info=@pkg_info[8];
+            ($junk,$other_info)=split(":  ",$other_info);
+            chomp($other_info);
+            $search_result="$search_result $other_info";
+          }
+          else {
+            $search_result=$search_string;
+            $search_result=~s/^\^//g;
+            $search_result=~s/^offline\.\*//g;
+            $search_result=~s/^online\.\*//g;
+            $search_result=~s/\[\[\:space\:\]\]\*/ /g;
+          }
           if ($option{'H'}) {
-            my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_string $search_message in /$message_file</font>");
+            my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_result $search_message in /$message_file</font>");
             push(@loop,\%row);
           }
           else {
             if ($option{'o'}) {
-              print FILE "$hostname: $search_string$spacer$search_message in /$message_file\n";
+              print FILE "$hostname: $search_result$spacer$search_message in /$message_file\n";
             }
             else {
-              print "$hostname: $search_string$spacer$search_message in /$message_file\n";
+              print "$hostname: $search_result$spacer$search_message in /$message_file\n";
             }
           }
         }
