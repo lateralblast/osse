@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.1.8
+# Version:      0.2.1
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -53,12 +53,18 @@ use File::Basename;
 #               Added check to see what version of sudo is installed
 #               0.1.8 Thu 22 Aug 2013 15:28:01 EST
 #               Added version detection to package requests
+#               0.1.9 Thu 29 Aug 2013 10:45:44 EST
+#               Added support for Zones
+#               0.2.0 Thu 29 Aug 2013 11:10:07 EST
+#               Added search for shares (http/ftp)
+#               0.2.1 Thu 29 Aug 2013 13:33:31 EST
+#               Fixed bug with searching
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hABCEHJKPRSUVZc:f:m:o:s:";
+my $options="hvwABCEHJKPRSUVZc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -103,6 +109,7 @@ sub print_usage {
   print "-K: Report which machines have Kerberos enabled\n";
   print "-R: Report which machines have RSA SecurID PAM agent installed\n";
   print "-E: Report which machines have Explorer installed\n";
+  print "-w: Report which machines have file sharing enabled (apache/ftp)\n";
   print "-S: Run security check against explorers\n";
   print "-U: Report which version of sudo is installed\n";
   print "-Z: Run services check against explorers\n";
@@ -114,6 +121,7 @@ sub print_usage {
   print "-c: Explorer client to search (by default all explorers are processed)\n";
   print "-m: Message to display (e.g. Installed/Enabled)\n";
   print "-o: Output to file rather than STDOUT\n";
+  print "-v: Verbose mode\n";
   print "\n";
   return;
 }
@@ -195,6 +203,9 @@ sub handle_reports {
   if ($option{'Z'}) {
     services_status($hostname);
   }
+  if ($option{'w'}) {
+    share_status($hostname);
+  }
   if ($option{'H'}) {
     print_template();
   }
@@ -238,6 +249,20 @@ sub services_status {
   my $search_file; 
   $search_message="Disabled";
   $search_string ="offline.*svc:/application/management/snmpdx:default";
+  $search_file="sysconfig/svcs-av.out";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  return;
+}
+
+sub share_status {
+  my $search_client=$_[0];
+  my $search_message;
+  my $search_string;
+  my $search_file; 
+  $search_message="Enabled";
+  $search_string ="online.*svc:/network/http:apache2,";
+  $search_string.="online.*svc:/network/ftp:default,";
+  $search_string.="online.*svc:/network/samba:default";
   $search_file="sysconfig/svcs-av.out";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   return;
@@ -396,8 +421,13 @@ sub search_explorers {
   my $pkg_test;
   my $command;
   my $output_file;
+  my @file_list;
+  my @zone_list;
+  my $zone_name;
+  my $zone_dir;
   my $message_file=$search_file;
   my $other_info;
+  my $zone_file="etc/zones/index";
   $message_file=~s/\.out//g;
   if ($search_string=~/\,/) {
     @search_string=split(",",$search_string);
@@ -414,28 +444,69 @@ sub search_explorers {
   $search_string="";
   $search_file=~s/^\///g;
   foreach $explorer_file (@explorer_list) {
+    @file_list=();
+    @zone_list=();
     chomp($explorer_file);
     $hostname=get_hostname($explorer_file);
     $filename=basename($explorer_file,".tar.gz");
-    $filename="$filename/$search_file";
-    $command="gtar -xpzf $explorer_file $filename -O";
-    @pkg_info=`$command`;
-    if (!grep /$hostname/,@host_list) {
-      foreach $search_string (@search_string) {
-        if (grep /$search_string/,@pkg_info) {
-          if ($filename=~/patch/) {
-            $search_result=(grep /$search_string$/,@pkg_info)[0];
-            chomp($search_result);
-            ($junk,$search_result)=split(": ",$search_result);
-            $other_info=join("\n",@pkg_info);
-            @pkg_info=split("PKGINST:",$other_info);
-            @pkg_info=(grep /$search_string/,@pkg_info);
-            $other_info=@pkg_info[0];
-            @pkg_info=split("\n",$other_info);
-            $other_info=@pkg_info[8];
-            ($junk,$other_info)=split(":  ",$other_info);
-            chomp($other_info);
-            $search_result="$search_result $other_info";
+    $filename="$hostname,$filename/$search_file";
+    push(@file_list,$filename);
+    $command="gtar -xpzf $explorer_file $zone_file -O 2>&1";
+    @zone_list=`$command |grep installed |cut -f3 -d:`;
+    foreach $zone_dir (@zone_list) {
+      chomp($zone_dir);
+      if ($zone_dir=~/[a-z]/) {
+        $zone_name=basename($zone_dir);
+        push(@file_list,"$zone_name,$zone_dir/$search_file");
+      }
+    }
+    foreach $filename (@file_list) {
+      ($hostname,$filename)=split(",",$filename);
+      $command="gtar -xpzf $explorer_file $filename -O 2>&1";
+      if ($option{'v'}) {
+        print "Checking $hostname file $filename\n";
+        print "Executing: $command\n";
+      }
+      @pkg_info=`$command`;
+      if (!grep /$hostname/,@host_list) {
+        foreach $search_string (@search_string) {
+          if ($option{'v'}) {
+            print "Searching $filename for $search_string\n"; 
+          }
+          if (grep /$search_string/,@pkg_info) {
+            if ($filename=~/patch/) {
+              $search_result=(grep /$search_string$/,@pkg_info)[0];
+              chomp($search_result);
+              ($junk,$search_result)=split(": ",$search_result);
+              $other_info=join("\n",@pkg_info);
+              @pkg_info=split("PKGINST:",$other_info);
+              @pkg_info=(grep /$search_string/,@pkg_info);
+              $other_info=@pkg_info[0];
+              @pkg_info=split("\n",$other_info);
+              $other_info=@pkg_info[8];
+              ($junk,$other_info)=split(":  ",$other_info);
+              chomp($other_info);
+              $search_result="$search_result $other_info";
+            }
+            else {
+              $search_result=$search_string;
+              $search_result=~s/^\^//g;
+              $search_result=~s/^offline\.\*//g;
+              $search_result=~s/^online\.\*//g;
+              $search_result=~s/\[\[\:space\:\]\]\*/ /g;
+            }
+            if ($option{'H'}) {
+              my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_result $search_message in /$message_file</font>");
+              push(@loop,\%row);
+            }
+            else {
+              if ($option{'o'}) {
+                print FILE "$hostname: $search_result$spacer$search_message in /$message_file\n";
+              }
+              else {
+                print "$hostname: $search_result$spacer$search_message in /$message_file\n";
+              }
+            }
           }
           else {
             $search_result=$search_string;
@@ -443,37 +514,19 @@ sub search_explorers {
             $search_result=~s/^offline\.\*//g;
             $search_result=~s/^online\.\*//g;
             $search_result=~s/\[\[\:space\:\]\]\*/ /g;
-          }
-          if ($option{'H'}) {
-            my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_result $search_message in /$message_file</font>");
-            push(@loop,\%row);
-          }
-          else {
-            if ($option{'o'}) {
-              print FILE "$hostname: $search_result$spacer$search_message in /$message_file\n";
+            if ($option{'H'}) {
+              my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_result Not $search_message in /$message_file</font>");
+              push(@loop,\%row);
             }
             else {
-              print "$hostname: $search_result$spacer$search_message in /$message_file\n";
-            }
-          }
-        }
-        else {
-          $search_string=~s/^\^//g;
-          $search_string=~s/^offline\.\*//g;
-          $search_string=~s/^online\.\*//g;
-          $search_string=~s/\[\[\:space\:\]\]\*/ /g;
-          if ($option{'H'}) {
-            my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_string Not $search_message in /$message_file</font>");
-            push(@loop,\%row);
-          }
-          else {
-            if ($option{'o'}) {
-              print FILE "$hostname: $search_string$spacer";
-              print FILE "Not $search_message in /$message_file\n";
-            }
-            else {
-              print "$hostname: $search_string$spacer";
-              print "Not $search_message in /$message_file\n";
+              if ($option{'o'}) {
+                print FILE "$hostname: $search_result$spacer";
+                print FILE "Not $search_message in /$message_file\n";
+              }
+              else {
+                print "$hostname: $search_result$spacer";
+                print "Not $search_message in /$message_file\n";
+              }
             }
           }
         }
