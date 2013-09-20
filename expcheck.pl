@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.2.1
+# Version:      0.2.2
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -59,6 +59,8 @@ use File::Basename;
 #               Added search for shares (http/ftp)
 #               0.2.1 Thu 29 Aug 2013 13:33:31 EST
 #               Fixed bug with searching
+#               0.2.2 Fri 20 Sep 2013 11:48:01 EST
+#               Output cleanup and more examples
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
@@ -277,11 +279,12 @@ sub security_status {
   $search_string.="^UMASK=022,^RETRIES=3,^CONSOLE=/dev/console,^PASSREQ=YES";
   $search_file="etc/default/login";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string ="^MAXWEEKS=48,^MAXREPEATS=0,^MINALPHA=2,^MINDIFF=3,";
-  $search_string.="^MINDIGIT=1,^MINSPECIAL=0,^MINUPPER=1,^MINLOWER,";
-  $search_string.="^WHITESPACE=NO,^NAMECHECK=YES,PASSLENGTH=7,";
-  $search_string.="^DICTIONDBDIR=/var/passwd,";
-  $search_string.="^DICTIONLIST=/usr/share/dict/words,^MINWEEKS=2,^HISTORY=26";
+  $search_string ="^MAXWEEKS=8,^MAXREPEATS=0|^MAXREPEATS=2,";
+  $search_string.="^MINALPHA=2|^MINALPHA=1,^MINDIFF=3,|^MINDIFF=1";
+  $search_string.="^MINDIGIT=1,^MINSPECIAL=0,^MINUPPER=1,^MINLOWER=1,";
+  $search_string.="^WHITESPACE=NO,^NAMECHECK=YES,^PASSLENGTH=7|^PASSLENGTH=8,";
+  $search_string.="^DICTIONDBDIR=/var/passwd,^DICTIONLIST=/usr/share/dict/words,";
+  $search_string.="^MINWEEKS=2,^HISTORY=26|^HISTORY=10";
   $search_file="etc/default/passwd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string ="^ENABLE_NOBODY_KEYS=NO";
@@ -309,6 +312,9 @@ sub security_status {
   $search_string ="^set c2audit:audit_load = 1,^set noexec_user_stack_log=1,";
   $search_string.="^set noexec_user_stack=1,^set nfssrv:nfs_portmon=1";
   $search_file="etc/system";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  $search_string ="^CRYPT_DEFAULT=6,^CRYPT_ALGORITHMS_ALLOW";
+  $search_file="/etc/security/policy.conf";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   return;
 }
@@ -368,7 +374,7 @@ sub jass_status {
 
 sub puppet_status {
   my $search_client=$_[0];
-  my $search_string="puppet";
+  my $search_string="[A-Z]puppet";
   my $search_file="patch+pkg/pkginfo-l.out";
   my $search_message="Installed";
   search_explorers($search_file,$search_string,$search_message,$search_client);
@@ -487,16 +493,18 @@ sub search_explorers {
               ($junk,$other_info)=split(":  ",$other_info);
               chomp($other_info);
               $search_result="$search_result $other_info";
+              $search_result=~s/\[A\-Z\]//g;
             }
             else {
               $search_result=$search_string;
-              $search_result=~s/^\^//g;
+              $search_result=~s/\^//g;
+              $search_result=~s/\|/ or /g;
               $search_result=~s/^offline\.\*//g;
               $search_result=~s/^online\.\*//g;
               $search_result=~s/\[\[\:space\:\]\]\*/ /g;
             }
             if ($option{'H'}) {
-              my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_result $search_message in /$message_file</font>");
+              my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_result $search_message</font>");
               push(@loop,\%row);
             }
             else {
@@ -510,12 +518,14 @@ sub search_explorers {
           }
           else {
             $search_result=$search_string;
-            $search_result=~s/^\^//g;
+            $search_result=~s/\^//g;
+            $search_result=~s/\|/ or /g;
             $search_result=~s/^offline\.\*//g;
             $search_result=~s/^online\.\*//g;
             $search_result=~s/\[\[\:space\:\]\]\*/ /g;
+            $search_result=~s/\[A\-Z\]//g;
             if ($option{'H'}) {
-              my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_result Not $search_message in /$message_file</font>");
+              my %row=(hostname=>"$hostname", value=>"<font color=\"red\">$search_result Not $search_message</font>");
               push(@loop,\%row);
             }
             else {
