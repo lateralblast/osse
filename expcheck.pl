@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.2.2
+# Version:      0.2.3
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -61,6 +61,8 @@ use File::Basename;
 #               Fixed bug with searching
 #               0.2.2 Fri 20 Sep 2013 11:48:01 EST
 #               Output cleanup and more examples
+#               0.2.3 Wed 25 Sep 2013 16:51:43 EST
+#               Fixed log from remote directive 
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
@@ -300,7 +302,7 @@ sub security_status {
   $search_string ="^PERMS=-";
   $search_file="etc/default/sys-suspend";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string ="^LOG_FOR_REMOTE=NO";
+  $search_string ="^LOG_FROM_REMOTE=NO";
   $search_file="etc/default/syslogd";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string ="^BANNER=\"Authorized Use Only\"";
