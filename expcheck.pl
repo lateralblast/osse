@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.2.4
+# Version:      0.2.5
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -16,55 +16,6 @@ use File::Basename;
 # Vendor:       UNIX
 # Packager:     Richard Spindler <richard@lateralblast.com.au>
 # Description:  Script to generate report on status of various systems via explorer
-
-# Changes       0.0.1
-#               Initial version
-#               0.0.2 Sun 18 Aug 2013 10:31:30 EST
-#               Initial package reporting
-#               0.0.3 Sun 18 Aug 2013 11:12:39 EST
-#               Cleaned up template creation
-#               0.0.4 Sun 18 Aug 2013 11:37:58 EST
-#               Updated getopts code
-#               0.0.5 Mon 19 Aug 2013 06:20:58 EST
-#               Added RSA, BSM and Puppet tests
-#               0.0.6 Mon 19 Aug 2013 08:38:07 EST
-#               Added Kerberos and individual explorer file support
-#               0.0.7 Mon 19 Aug 2013 08:57:22 EST
-#               Added check to make sure host isn't duplicated (old explorers)
-#               0.0.8 Mon 19 Aug 2013 10:21:21 EST
-#               Converted search to array to avoid multiple file opens of the same file
-#               0.0.9 Mon 19 Aug 2013 11:26:26 EST
-#               Added initial security check
-#               0.1.0 Mon 19 Aug 2013 12:02:03 EST
-#               Cleaned up template code
-#               0.1.1 Mon 19 Aug 2013 15:49:32 EST
-#               Added explorer check
-#               0.1.2 Mon 19 Aug 2013 16:03:11 EST
-#               Updated BSM and Security check
-#               0.1.3 Tue 20 Aug 2013 10:21:22 EST
-#               Added support to do all explorers (-A switch)
-#               0.1.4 Tue 20 Aug 2013 11:15:15 EST
-#               Added initial support for checking service status
-#               0.1.5 Tue 20 Aug 2013 13:03:02 EST
-#               Cleaned up results for Kerberos search
-#               0.1.6 Tue 20 Aug 2013 13:23:52 EST
-#               Added CSV output support
-#               0.1.7 Thu 22 Aug 2013 14:19:46 EST
-#               Added check to see what version of sudo is installed
-#               0.1.8 Thu 22 Aug 2013 15:28:01 EST
-#               Added version detection to package requests
-#               0.1.9 Thu 29 Aug 2013 10:45:44 EST
-#               Added support for Zones
-#               0.2.0 Thu 29 Aug 2013 11:10:07 EST
-#               Added search for shares (http/ftp)
-#               0.2.1 Thu 29 Aug 2013 13:33:31 EST
-#               Fixed bug with searching
-#               0.2.2 Fri 20 Sep 2013 11:48:01 EST
-#               Output cleanup and more examples
-#               0.2.3 Wed 25 Sep 2013 16:51:43 EST
-#               Fixed log from remote directive 
-#               0.2.4 Wed 25 Sep 2013 17:20:38 EST
-#               Fixed MINDIFF typo
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
