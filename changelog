@@ -47,3 +47,5 @@
 # Fixed MINDIFF typo
 # 0.2.5 Wed 25 Sep 2013 17:23:35 EST
 # Moved changelog to a separate file
+# 0.2.6 Fri 27 Sep 2013 12:07:12 EST
+# Fixed CRYPT_ALGORITHMS_ALLOW

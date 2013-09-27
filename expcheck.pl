@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.2.5
+# Version:      0.2.6
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -268,7 +268,7 @@ sub security_status {
   $search_string.="^set noexec_user_stack=1,^set nfssrv:nfs_portmon=1";
   $search_file="etc/system";
   search_explorers($search_file,$search_string,$search_message,$search_client);
-  $search_string ="^CRYPT_DEFAULT=6,^CRYPT_ALGORITHMS_ALLOW";
+  $search_string ="^CRYPT_DEFAULT=6,^CRYPT_ALGORITHMS_ALLOW=6";
   $search_file="/etc/security/policy.conf";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   return;
