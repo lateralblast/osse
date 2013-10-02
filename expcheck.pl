@@ -6,7 +6,7 @@ use Getopt::Std;
 use File::Basename;
 
 # Name:         expcheck.pl
-# Version:      0.2.6
+# Version:      0.2.7
 # Release:      1
 # License:      Open Source 
 # Group:        System
@@ -235,9 +235,9 @@ sub security_status {
   $search_file="etc/default/login";
   search_explorers($search_file,$search_string,$search_message,$search_client);
   $search_string ="^MAXWEEKS=8,^MAXREPEATS=0|^MAXREPEATS=2,";
-  $search_string.="^MINALPHA=2|^MINALPHA=1,^MINDIFF=3|^MINDIFF=1";
+  $search_string.="^MINALPHA=2|^MINALPHA=1,^MINDIFF=3|^MINDIFF=1,";
   $search_string.="^MINDIGIT=1,^MINSPECIAL=0,^MINUPPER=1,^MINLOWER=1,";
-  $search_string.="^WHITESPACE=NO,^NAMECHECK=YES,^PASSLENGTH=7|^PASSLENGTH=8,";
+  $search_string.="^NAMECHECK=YES,^PASSLENGTH=7|^PASSLENGTH=8,";
   $search_string.="^DICTIONDBDIR=/var/passwd,^DICTIONLIST=/usr/share/dict/words,";
   $search_string.="^MINWEEKS=2,^HISTORY=26|^HISTORY=10";
   $search_file="etc/default/passwd";

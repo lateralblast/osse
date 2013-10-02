@@ -49,3 +49,5 @@
 # Moved changelog to a separate file
 # 0.2.6 Fri 27 Sep 2013 12:07:12 EST
 # Fixed CRYPT_ALGORITHMS_ALLOW
+# 0.2.7 Wed  2 Oct 2013 11:53:30 EST
+Fixed bug with MINDIFF check
