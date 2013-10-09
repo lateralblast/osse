@@ -22,6 +22,7 @@ Usage
 	-E: Report which machines have Explorer installed
 	-S: Run security check against explorers
 	-Z: Run services check against explorers
+	-z: Show status of Zones
 	-A: Output individual reports for each explorer/client
 	-H: Generate HTML report
 	-s: String based search

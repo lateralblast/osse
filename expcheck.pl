@@ -21,7 +21,7 @@ my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
 my $explorer_dir="explorers";
 my %option=();
-my $options="hvwABCEHJKPRSUVZc:f:m:o:s:";
+my $options="hvwzABCEHJKPRSUVZc:f:m:o:s:";
 my @loop;
 my $template;
 my $html=do { local $/; <DATA> };
@@ -70,6 +70,7 @@ sub print_usage {
   print "-S: Run security check against explorers\n";
   print "-U: Report which version of sudo is installed\n";
   print "-Z: Run services check against explorers\n";
+  print "-z: Show status of Zones\n";
   print "-A: Output individual reports for each explorer/client\n";
   print "-H: Generate HTML report\n";
   print "-C: Generate CSV report\n";
@@ -163,6 +164,9 @@ sub handle_reports {
   if ($option{'w'}) {
     share_status($hostname);
   }
+  if ($option{'z'}) {
+    zone_status($hostname);
+  }
   if ($option{'H'}) {
     print_template();
   }
@@ -187,12 +191,21 @@ sub explorer_status {
   return;
 }
 
+sub zone_status {
+  my $search_client=$_[0];
+  my $search_message="Installed";
+  my $search_string="installed";
+  my $search_file="/etc/zones/index";
+  search_explorers($search_file,$search_string,$search_message,$search_client);
+  return;
+}
+
 sub sudo_status {
   my $search_client=$_[0];
   my $search_message="Installed";
   my $search_string;
   my $search_file;
-  $search_string="sudo";
+  $search_string="Installed";
   $search_file="patch+pkg/pkginfo-l.out";
   $search_message="Installed";
   search_explorers($search_file,$search_string,$search_message,$search_client);
@@ -375,6 +388,7 @@ sub search_explorers {
   my $explorer_file;
   my $filename;
   my @line;
+  my @data;
   my $year;
   my $junk;
   my $spacer;
@@ -386,6 +400,8 @@ sub search_explorers {
   my @zone_list;
   my $zone_name;
   my $zone_dir;
+  my $zone_host;
+  my @zone_info;
   my $message_file=$search_file;
   my $other_info;
   my $zone_file="etc/zones/index";
@@ -451,12 +467,29 @@ sub search_explorers {
               $search_result=~s/\[A\-Z\]//g;
             }
             else {
-              $search_result=$search_string;
-              $search_result=~s/\^//g;
-              $search_result=~s/\|/ or /g;
-              $search_result=~s/^offline\.\*//g;
-              $search_result=~s/^online\.\*//g;
-              $search_result=~s/\[\[\:space\:\]\]\*/ /g;
+              if ($filename=~/zones/) {
+                $search_result="";
+                @data=();
+                @line=();
+                @zone_list=(grep /$search_string/,@pkg_info); 
+                foreach $zone_host (@zone_list) {
+                  chomp($zone_host);
+                  if ($zone_host!~/global/) {
+                    @line=split(/:/,$zone_host);
+                    $zone_host=@line[0];
+                    push(@data,$zone_host); 
+                  }
+                }
+                $search_result=join(",",@data)
+              }
+              else {
+                $search_result=$search_string;
+                $search_result=~s/\^//g;
+                $search_result=~s/\|/ or /g;
+                $search_result=~s/^offline\.\*//g;
+                $search_result=~s/^online\.\*//g;
+                $search_result=~s/\[\[\:space\:\]\]\*/ /g;
+              }
             }
             if ($option{'H'}) {
               my %row=(hostname=>"$hostname", value=>"<font color=\"green\">$search_result $search_message</font>");

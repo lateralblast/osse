@@ -50,4 +50,7 @@
 # 0.2.6 Fri 27 Sep 2013 12:07:12 EST
 # Fixed CRYPT_ALGORITHMS_ALLOW
 # 0.2.7 Wed  2 Oct 2013 11:53:30 EST
-Fixed bug with MINDIFF check
+# Fixed bug with MINDIFF check
+# 0.2.8 Wed  9 Oct 2013 11:11:32 EST
+# Added -z switch to show Zone status
+
