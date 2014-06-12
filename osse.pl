@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 # Name:         osse (Oracle Solaris Simple Explorer)
-# Version:      0.2.7
+# Version:      0.2.8
 # Release:      1
 # License:      CC-BA (Creative Commons By Attrbution)
 #               http://creativecommons.org/licenses/by/4.0/legalcode
