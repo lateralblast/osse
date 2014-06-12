@@ -1,14 +1,10 @@
 #!/usr/bin/env perl
 
-use strict;
-use HTML::Template;
-use Getopt::Std;
-use File::Basename;
-
-# Name:         expcheck.pl
+# Name:         osse (Oracle Solaris Simple Explorer)
 # Version:      0.2.7
 # Release:      1
-# License:      Open Source 
+# License:      CC-BA (Creative Commons By Attrbution)
+#               http://creativecommons.org/licenses/by/4.0/legalcode
 # Group:        System
 # Source:       Lateral Blast
 # URL:          N/A
@@ -16,6 +12,11 @@ use File::Basename;
 # Vendor:       UNIX
 # Packager:     Richard Spindler <richard@lateralblast.com.au>
 # Description:  Script to generate report on status of various systems via explorer
+
+use strict;
+use HTML::Template;
+use Getopt::Std;
+use File::Basename;
 
 my $script_name=$0;
 my $script_version=`cat $script_name | grep '^# Version' |awk '{print \$3}'`;
@@ -86,7 +87,7 @@ sub print_usage {
 
 if ($option{'A'}) {
   individual_reports();
-  exit; 
+  exit;
 }
 
 if ($option{'s'}) {
@@ -101,17 +102,17 @@ if ($option{'s'}) {
 }
 
 sub individual_reports {
-  my @explorer_list=get_explorer_list(); 
+  my @explorer_list=get_explorer_list();
   my $explorer_file;
   my $hostname;
-  my $output_file; 
+  my $output_file;
   foreach $explorer_file (@explorer_list) {
     if ($option{'H'}) {
       create_template();
     }
     if ($option{'o'}) {
       $output_file=$option{'o'};
-      open(FILE,">$output_file"); 
+      open(FILE,">$output_file");
     }
     $hostname=get_hostname($explorer_file);
     handle_reports($hostname)
@@ -123,13 +124,13 @@ if (!$option{'A'}) {
 
 sub handle_reports {
   my $hostname=$_[0];
-  my $output_file; 
+  my $output_file;
   if ($option{'H'}) {
     create_template();
   }
   if ($option{'o'}) {
     $output_file=$option{'o'};
-    open(FILE,">$output_file"); 
+    open(FILE,">$output_file");
     if ($option{'A'}) {
       $output_file="$hostname\_$output_file"
     }
@@ -216,7 +217,7 @@ sub services_status {
   my $search_client=$_[0];
   my $search_message;
   my $search_string;
-  my $search_file; 
+  my $search_file;
   $search_message="Disabled";
   $search_string ="offline.*svc:/application/management/snmpdx:default";
   $search_file="sysconfig/svcs-av.out";
@@ -228,7 +229,7 @@ sub share_status {
   my $search_client=$_[0];
   my $search_message;
   my $search_string;
-  my $search_file; 
+  my $search_file;
   $search_message="Enabled";
   $search_string ="online.*svc:/network/http:apache2,";
   $search_string.="online.*svc:/network/ftp:default,";
@@ -410,7 +411,7 @@ sub search_explorers {
     @search_string=split(",",$search_string);
   }
   else {
-    @search_string[0]=$search_string; 
+    @search_string[0]=$search_string;
   }
   if ($option{'C'}) {
     $spacer=",";
@@ -448,7 +449,7 @@ sub search_explorers {
       if (!grep /$hostname/,@host_list) {
         foreach $search_string (@search_string) {
           if ($option{'v'}) {
-            print "Searching $filename for $search_string\n"; 
+            print "Searching $filename for $search_string\n";
           }
           if (grep /$search_string/,@pkg_info) {
             if ($filename=~/patch/) {
@@ -471,13 +472,13 @@ sub search_explorers {
                 $search_result="";
                 @data=();
                 @line=();
-                @zone_list=(grep /$search_string/,@pkg_info); 
+                @zone_list=(grep /$search_string/,@pkg_info);
                 foreach $zone_host (@zone_list) {
                   chomp($zone_host);
                   if ($zone_host!~/global/) {
                     @line=split(/:/,$zone_host);
                     $zone_host=@line[0];
-                    push(@data,$zone_host); 
+                    push(@data,$zone_host);
                   }
                 }
                 $search_result=join(",",@data)
