@@ -1,5 +1,7 @@
 ![alt tag](https://raw.githubusercontent.com/lateralblast/osse/master/osse.png)
 
+> A spirit of the sea in the service of Ulmo, Ossë guarded the waters around Middle-earth.
+
 OSSE
 ====
 
